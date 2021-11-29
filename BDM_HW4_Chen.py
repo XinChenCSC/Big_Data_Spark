@@ -1,3 +1,13 @@
+import sys
+import csv
+import datetime
+import json
+import pyspark
+import numpy as np
+from pyspark.sql import SparkSession
+from pyspark import SparkContext
+from datetime import date
+
 def visit_per_day(visit_data):
   
   from datetime import date
@@ -26,6 +36,10 @@ def count_high(x):
     return high
   
 if __name__=='__main__':
+  
+  sc = pyspark.SparkContext()
+  spark = SparkSession(sc)
+
   categories = [set(['452210','452311']),set(['445120']),set(['722410']),set(['722511']),
               set(['722513']), set(['446110','446191']),set(['311811','722515']),
                 set( ['445210','445220','445230','445291','445292','445299']), 
