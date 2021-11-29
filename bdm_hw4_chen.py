@@ -7,8 +7,7 @@ import pyspark
 import numpy as np
 from pyspark.sql import SparkSession
 from pyspark import SparkContext
-sc = pyspark.SparkContext()
-spark = SparkSession(sc)
+
 
 def get_info(target):
   categorie = sc.textFile('hdfs:///data/share/bdm/core-places-nyc.csv')\
@@ -61,6 +60,8 @@ def get_res_table(target):
                                              .map(lambda x: (x[0].split('-')[0],x[0].replace('2019','2020'),int(np.median(x[1])),count_low(x),count_high(x)))
   return res
 if __name__=='__main__':
+  sc = pyspark.SparkContext()
+  spark = SparkSession(sc)
   categories = [set(['452210','452311']),set(['445120']),set(['722410']),set(['722511']),
               set(['722513']), set(['446110','446191']),set(['311811','722515']),
                 set( ['445210','445220','445230','445291','445292','445299']), 
