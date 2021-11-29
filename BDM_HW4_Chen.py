@@ -36,21 +36,27 @@ def count_high(x):
     return high
   
 if __name__=='__main__':
-  
-  sc = pyspark.SparkContext()
-  spark = SparkSession(sc)
-
   categories = [set(['452210','452311']),set(['445120']),set(['722410']),set(['722511']),
               set(['722513']), set(['446110','446191']),set(['311811','722515']),
                 set( ['445210','445220','445230','445291','445292','445299']), 
                 set(['445110'])]
+  path_name = ('test/big_box_grocers',
+            'test/convenience_stores',
+            'test/drinking_places',
+            'test/full_service_restaurants',
+            'test/limited_service_restaurants',
+            'test/pharmacies_and_drug_stores',
+            'test/snack_and_bakeries',
+            'test/specialty_food_stores',
+            'test/supermarkets_except_convenience_stores')
   for index,categorie in enumerate(categories):
+    # hdfs:///data/share/bdm/core-places-nyc.csv
     get_info = sc.textFile('hdfs:///data/share/bdm/core-places-nyc.csv')\
                 .filter(lambda x: next(csv.reader([x]))[9] in categorie)\
                 .map(lambda x: next(csv.reader([x])))\
                 .map(lambda x: (x[0],x[1]))\
                 .collect()
-            
+            # hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*
     get_visit_data = sc.textFile('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*')\
                    .filter(lambda x: tuple(next(csv.reader([x]))[0:2]) in  get_info)\
                    .map(lambda x: next(csv.reader([x])))\
