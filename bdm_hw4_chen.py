@@ -19,14 +19,14 @@ sc = pyspark.SparkContext()
 spark = SparkSession(sc)
 
 def get_info(target):
-  categorie = sc.textFile('core-places-nyc.csv')\
+  categorie = sc.textFile('hdfs:///data/share/bdm/core-places-nyc.csv')\
                 .filter(lambda x: next(csv.reader([x]))[9] in target)\
                 .map(lambda x: next(csv.reader([x])))\
                 .map(lambda x: (x[0],x[1]))\
                 .cache()
   return categorie
 def get_visit_data(target):
-  visit_data = sc.textFile('weekly-patterns-nyc-2019-2020')\
+  visit_data = sc.textFile('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*')\
                    .filter(lambda x: tuple(next(csv.reader([x]))[0:2]) in  target)\
                    .map(lambda x: next(csv.reader([x])))\
                    .map(lambda x: (x[12].split('T')[0],x[13].split('T')[0],x[16]))\
