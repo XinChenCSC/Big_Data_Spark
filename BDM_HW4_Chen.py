@@ -79,7 +79,7 @@ if __name__=='__main__':
 
 
 
-    get_visit_data = sc.textFile('whdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*')\
+    get_visit_data = sc.textFile('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*')\
                       .filter(lambda x: tuple(next(csv.reader([x]))[0:2]) in  get_info )\
                       .map(lambda x: next(csv.reader([x])))\
                       .mapPartitions(get_date)\
