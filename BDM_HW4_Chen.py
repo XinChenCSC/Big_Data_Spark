@@ -10,7 +10,6 @@ from datetime import date
 
 def visit_per_day(visit_data):
   
-  from datetime import date
   d = visit_data[0].split('-')
   d0 = date(int(d[0]),int(d[1]),int(d[2]))
   d = visit_data[1].split('-')
