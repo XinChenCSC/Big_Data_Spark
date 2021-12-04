@@ -127,10 +127,11 @@ if __name__=='__main__':
           .collect()
 
   for categorie in rdd:
-          spark.coalesce(1)\
-               .createDataFrame(categorie[1], ["year", "date" , "median","low","high"])\
+          spark.createDataFrame(categorie[1], ["year", "date" , "median","low","high"])\
+               .coalesce(1)\
                .write.format("csv")\
                .option("header", "true")\
                .save(path_name[categorie[0]])
+
 
 
