@@ -1,3 +1,16 @@
+import csv
+import datetime
+import json
+import pyspark
+import numpy as np
+from pyspark.sql import SparkSession
+from pyspark import SparkContext
+from datetime import date
+
+import itertools
+from pyspark.sql import functions as F
+from pyspark.sql.types import DateType, IntegerType, MapType, StringType
+
 def get_name(x):
     for data in categories:
       if x in data:
@@ -108,7 +121,8 @@ if __name__=='__main__':
         .coalesce(1)\
         .write.format("csv")\
         .option("header", "true")\
-        .save(value.replace('test',sys.argv[1]) if len(sys.argv)>1 else value)
+        .save(value)
+#         .save(value.replace('test',sys.argv[1]) if len(sys.argv)>1 else value)
 #         .save(value)
 
 
