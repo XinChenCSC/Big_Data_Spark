@@ -1,88 +1,52 @@
-import sys
-import csv
-import datetime
-import pyspark
-import numpy as np
-from pyspark.sql import SparkSession
-from pyspark import SparkContext
-from datetime import date
-import itertools
-
-
-def get_name_id(x):
+def get_name(x):
     for data in categories:
-      if x[9] in data:
-        return [x[0],x[1],data[-1]]
+      if x in data:
+        return data[-1]
 
-def get_pattern_info(x):
-  if x[0] in data:
-    return (x[12].split('T')[0],x[13].split('T')[0],x[16],x[0],x[1])
+def visit_per_day(date_start,date_end,visits_by_day):
+  
+  d = date_start.split('T')[0].split('-')
+  d0 = date(int(d[0]),int(d[1]),int(d[2]))
+  d = date_end.split('T')[0].split('-')
+  d1 = date(int(d[0]),int(d[1]),int(d[2]))
+  diff = d1 - d0
+  delta = datetime.timedelta(days=1)
+  visit = visits_by_day.replace('[','').replace(']','')
+  res = {}
+  for x in visit.split(','):
+    x_int = int(x)
+    d0_str = str(d0)
+    if x_int != 0 and d0_str >'2018-12-31' and d0_str  < '2021-01-01':
+      res [d0_str] = x_int
+    d0+= delta
+  return res
 
-def visit_per_day(visit_data):
-  if visit_data is not None:
-    d = visit_data[0].split('-')
-    d0 = date(int(d[0]),int(d[1]),int(d[2]))
-    d = visit_data[1].split('-')
-    d1 = date(int(d[0]),int(d[1]),int(d[2]))
-    diff = d1 - d0
-    delta = datetime.timedelta(days=1)
-    visit = visit_data[2].replace('[','').replace(']','')
-    for x in visit.split(','):
-      yield (  '_'.join( (str(d0), visit_data[3],visit_data[4])),int(x))
-      d0+= delta
 
-def get_table_format(data):
-  for x in data:
-    y = x[0].split('_')
-    yield (
-           info_dic[(y[1],y[2])], 
-           (
-           y[0].split('-')[0],y[0].replace('2019','2020'),
-           int(np.median(x[1])),
-           list(count_low(x))[0],
-           list(count_high(x))[0]
-           )
-           )
+
 
 def count_low(x):
-  low = round(int(np.median(x[1])) - int(np.std(x[1])))
+  
+  low = round(int(np.median(x)) - int(np.std(x)))
   if low < 0:
-    yield 0
+    return 0
   else:
-    yield low
+    return low
 
 def count_high(x):
-  high = round(int(np.median(x[1])) + int(np.std(x[1])))
+  
+  high = round(int(np.median(x)) + int(np.std(x)))
   if high < 0:
-    yield 0
+    return 0
   else:
-    yield high
+    return high
 
-def to_list(a):
-    return [a]
 
-def append(a, b):
-    a.append(b)
-    return a
-
-def extend(a, b):
-    a.extend(b)
-    return a
   
 if __name__=='__main__':
+
+    
   sc = pyspark.SparkContext()
   spark = SparkSession(sc)
-  categories = [   
-      ['452210','452311','big_box_grocers'],
-      ['445120','convenience_stores'],
-      ['722410','drinking_places'],
-      ['722511','full_service_restaurants'],
-      ['722513','limited_service_restaurants'],
-      ['446110','446191','pharmacies_and_drug_stores'],
-      ['311811','722515','snack_and_bakeries'],
-      ['445210','445220','445230','445291','445292','445299','specialty_food_stores'],
-      ['445110','supermarkets_except_convenience_stores'] ]
-
   id = ['452210','452311','445120','722410','722511','722513','446110','446191','311811','722515',
         '445210','445220','445230','445291','445292','445299','445110']
 
@@ -96,42 +60,56 @@ if __name__=='__main__':
             'snack_and_bakeries': 'test/snack_and_bakeries',
             'specialty_food_stores':'test/specialty_food_stores',
             'supermarkets_except_convenience_stores':'test/supermarkets_except_convenience_stores'}
-                  
+              
   
     # hdfs:///data/share/bdm/core-places-nyc.csv
-  get_info = sc.textFile('hdfs:///data/share/bdm/core-places-nyc.csv')\
-              .map(lambda  x: get_name_id(next(csv.reader([x])))  )\
-              .filter(lambda x: x is not None)\
-              .cache()\
-              .collect()
-  data = list(itertools.chain(*get_info))
-  info_dic = {}
-  for y in get_info:
-    y = ((y[0],y[1]),y[2])
-    d = dict(itertools.zip_longest(*[iter(y)] * 2, fillvalue=""))
-    key = list(d.keys())[0]
-    info_dic[key] = d[key]
+  udf_get_name = F.udf(get_name, StringType())
+
+  id_info = spark.read.csv('hdfs:///data/share/bdm/core-places-nyc.csv', header=True, escape='"') \
+                      .where(F.col('naics_code').isin(id))\
+                      .withColumn('name', udf_get_name('naics_code') )\
+                      .withColumnRenamed("placekey","id_placekey")\
+                      .withColumnRenamed("safegraph_place_id","id_safegraph_place_id")\
+                      .select('id_placekey','id_safegraph_place_id','name')
   
+  
+  
+  udf_visit_per_day = F.udf(visit_per_day, MapType(StringType(), IntegerType()))
+  udf_count_median = F.udf(lambda x: int(np.median(x)) ,IntegerType())
+  udf_count_low = F.udf(count_low,IntegerType())
+  udf_count_high = F.udf(count_high,IntegerType())
+  udf_get_year = F.udf(lambda x: x.replace('2019','2020'), StringType())
+  visit_info = spark.read.csv('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*', header=True, escape='"')\
+
+  
+                    
 
 
-#   hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*
-  rdd = sc.textFile('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*')\
-          .map(lambda x: get_pattern_info(next(csv.reader([x])) ))\
-          .filter(lambda x: x is not None)\
-          .flatMap(visit_per_day)\
-          .filter(lambda x: x[1] != 0 and x[0].split('_')[0] >'2018-12-31' and x[0].split('_')[0] < '2021-01-01')\
-          .combineByKey(to_list, append , extend)\
-          .sortBy(lambda x: x[0])\
-          .mapPartitions(get_table_format)\
-          .combineByKey(to_list, append , extend)\
-          .collect()
+  res = visit_info.join(id_info,( (visit_info.placekey == id_info.id_placekey) & (visit_info.safegraph_place_id == id_info.id_safegraph_place_id)  ),"inner" )\
+                  .drop('parent_placekey')\
+                  .drop('parent_safegraph_place_id')\
+                  .dropna()\
+                   .select('name',
+                           F.explode(udf_visit_per_day('date_range_start','date_range_end','visits_by_day'))\
+                            .alias('date','visits'))\
+                   .groupBy('name','date')\
+                   .agg(F.collect_list('visits').alias('visits'))\
+                   .sort('date')\
+                   .withColumn('median',udf_count_median('visits') )\
+                   .withColumn('low',udf_count_low('visits') )\
+                   .withColumn('high',udf_count_high('visits') )\
+                   .drop('visits')\
+                   .withColumn("year",F.split(F.col('date'),'-')[0]   )\
+                   .withColumn("date",udf_get_year(F.col('date')) )
 
-  for categorie in rdd:
-          spark.createDataFrame(categorie[1], ["year", "date" , "median","low","high"])\
-               .coalesce(1)\
-               .write.format("csv")\
-               .option("header", "true")\
-               .save(path_name[categorie[0]])
+  for key,value in path_name.items():
+    res.where(F.col('name') == key)\
+        .select('year','date','median','low','high')\
+        .coalesce(1)\
+        .write.format("csv")\
+        .option("header", "true")\
+        .save(value.replace('test',sys.argv[1]) if len(sys.argv)>1 else value)
+#         .save(value)
 
 
-
+    
