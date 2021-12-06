@@ -60,6 +60,18 @@ if __name__=='__main__':
     
   sc = pyspark.SparkContext()
   spark = SparkSession(sc)
+ 
+  categories = [   
+      ['452210','452311','big_box_grocers'],
+      ['445120','convenience_stores'],
+      ['722410','drinking_places'],
+      ['722511','full_service_restaurants'],
+      ['722513','limited_service_restaurants'],
+      ['446110','446191','pharmacies_and_drug_stores'],
+      ['311811','722515','snack_and_bakeries'],
+      ['445210','445220','445230','445291','445292','445299','specialty_food_stores'],
+      ['445110','supermarkets_except_convenience_stores'] ]
+
   id = ['452210','452311','445120','722410','722511','722513','446110','446191','311811','722515',
         '445210','445220','445230','445291','445292','445299','445110']
 
