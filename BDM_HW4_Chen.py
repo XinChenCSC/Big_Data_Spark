@@ -119,13 +119,14 @@ if __name__=='__main__':
                   .withColumn('median',udf_count_median('visits') )\
                   .withColumn('low',udf_count_low('visits') )\
                   .withColumn('high',udf_count_high('visits') )\
-                  .drop('visits')\
                   .withColumn("year",F.split(F.col('date'),'-')[0]   )\
                   .withColumn("date",udf_get_year(F.col('date')) )
+
 
   for key,value in path_name.items():
     res.where(F.col('name') == key)\
         .select('year','date','median','low','high')\
-        .coalesce(1)\
-        .write.csv(value)
+        .write.csv(value.replace('test',sys.argv[1]) if len(sys.argv)>1 else value)
+
+
 
