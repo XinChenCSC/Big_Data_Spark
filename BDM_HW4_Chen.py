@@ -88,14 +88,13 @@ if __name__=='__main__':
               
   
     # hdfs:///data/share/bdm/core-places-nyc.csv
+    
   udf_get_name = F.udf(get_name, StringType())
 
   id_info = spark.read.csv('hdfs:///data/share/bdm/core-places-nyc.csv', header=True, escape='"') \
                       .where(F.col('naics_code').isin(id))\
                       .withColumn('name', udf_get_name('naics_code') )\
-                      .withColumnRenamed("placekey","id_placekey")\
-                      .withColumnRenamed("safegraph_place_id","id_safegraph_place_id")\
-                      .select('id_placekey','id_safegraph_place_id','name')
+                      .select('safegraph_place_id','name')
   
   
   
@@ -109,8 +108,7 @@ if __name__=='__main__':
   
                     
 
-
-  res = visit_info.join(id_info, on = "safegraph_place_id"  ) \
+  res = visit_info.join(id_info, on = "safegraph_place_id", how = 'left'  ) \
                   .dropna()\
                   .select('name',
                           F.explode(udf_visit_per_day('date_range_start','date_range_end','visits_by_day'))\
@@ -130,3 +128,4 @@ if __name__=='__main__':
         .select('year','date','median','low','high')\
         .coalesce(1)\
         .write.csv(value)
+
