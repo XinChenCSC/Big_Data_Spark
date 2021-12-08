@@ -7,27 +7,27 @@ import json
 import numpy as np
 import sys
 
-def expandVisits(date_range_start, visits_by_day):
-    expand_visit_lst= []
-    d_start = datetime.datetime(*map(int,date_range_start[:10].split('-')))
-  
-    for days,visits in enumerate(json.loads(visits_by_day) ):
-      if visits == 0: continue
-      d = d_start + datetime.timedelta(days=days)
-      if d.year in (2019,2020):
-        expand_visit_lst.append((d.year, f'{d.month:02d}-{d.day:02d}', visits))
-    return expand_visit_lst
-
-
-def computeStats(group, visits):
-
-    visits = np.fromiter(visits,np.int_)
-    visits.resize(groupCount[group])
-    median = np.median(visits)
-    std = np.std(visits)
-    return (int(median+0.5), max(0,int(median - std +0.5)), int(median + std +0.5)  )
 
 def main(sc, spark):
+    def expandVisits(date_range_start, visits_by_day):
+        expand_visit_lst= []
+        d_start = datetime.datetime(*map(int,date_range_start[:10].split('-')))
+      
+        for days,visits in enumerate(json.loads(visits_by_day) ):
+          if visits == 0: continue
+          d = d_start + datetime.timedelta(days=days)
+          if d.year in (2019,2020):
+            expand_visit_lst.append((d.year, f'{d.month:02d}-{d.day:02d}', visits))
+        return expand_visit_lst
+
+
+    def computeStats(group, visits):
+
+        visits = np.fromiter(visits,np.int_)
+        visits.resize(groupCount[group])
+        median = np.median(visits)
+        std = np.std(visits)
+        return (int(median+0.5), max(0,int(median - std +0.5)), int(median + std +0.5)  )
 
     # 'hdfs:///data/share/bdm/core-places-nyc.csv'
     # 'hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*'
