@@ -85,7 +85,7 @@ def main(sc, spark):
         .cache()
 
     categories = list(categories.keys())
-
+    
  
     for index,filename in enumerate(categories):
       dfJ.filter(f'group={index}') \
