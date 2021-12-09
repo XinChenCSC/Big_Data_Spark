@@ -11,7 +11,7 @@ import sys
 def expandVisits(date_range_start, visits_by_day):
     expand_visit_lst= []
     d_start = datetime.datetime(*map(int,date_range_start[:10].split('-')))
-    
+
     for days,visits in enumerate(json.loads(visits_by_day) ):
         if visits == 0: continue
         d = d_start + datetime.timedelta(days=days)
@@ -33,9 +33,6 @@ if __name__=='__main__':
     sc = SparkContext()
     spark = SparkSession(sc)
 
-
-    # 'hdfs:///data/share/bdm/core-places-nyc.csv'
-    # 'hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*'
     dfPlaces = spark.read.csv('hdfs:///data/share/bdm/core-places-nyc.csv', header=True, escape='"')
     dfPattern = spark.read.csv('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*', header=True, escape='"')
     OUTPUT_PREFIX = sys.argv[1]
@@ -55,7 +52,7 @@ if __name__=='__main__':
     dfD = dfPlaces.  \
               filter(F.col('naics_code').isin(CAT_CODES))\
               .select('placekey','naics_code')
-            
+
     udfToGroup = F.udf(CAT_GROUP.get, T.IntegerType())
 
     dfE = dfD.withColumn('group', udfToGroup('naics_code'))
@@ -72,7 +69,7 @@ if __name__=='__main__':
         .withColumn('expanded', F.explode(udfExpand('date_range_start', 'visits_by_day'))) \
         .select('group', 'expanded.*')
 
-    
+
 
     statsType = T.StructType([T.StructField('median', T.IntegerType()),
                               T.StructField('low', T.IntegerType()),
@@ -84,19 +81,22 @@ if __name__=='__main__':
         .agg(F.collect_list('visits').alias('visits')) \
         .withColumn('stats', udfComputeStats('group', 'visits'))
     dfJ = dfI \
-        .select('year','date','stats.*')\
+        .select('group','year','date','stats.*')\
         .orderBy('group','year','date')\
         .withColumn('date',F.concat(F.lit('2020-'), F.col('date') ))\
         .cache()
 
+
     categories = list(categories.keys())
-    
- 
+
+
     for index,filename in enumerate(categories):
       dfJ.filter(f'group={index}') \
           .drop('group') \
           .coalesce(1) \
-          .write.csv(f'{OUTPUT_PREFIX}/{filename}',mode='overwrite', header=True)
+          .write.csv(f'{OUTPUT_PREFIX}/{filename}' if OUTPUT_PREFIX != None else f'test/{filename}',
+                    mode='overwrite', header=True)
+
 
 
 
