@@ -123,6 +123,7 @@ if __name__=='__main__':
                   .withColumn("date",udf_get_year(F.col('date')) )
 
 
+
   for key,value in path_name.items():
     res.where(F.col('name') == key)\
         .select('year','date','median','low','high')\
