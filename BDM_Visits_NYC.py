@@ -20,6 +20,7 @@ def expandVisits(date_range_start, visits_by_day):
     return expand_visit_lst
 
 
+
 def computeStats(groupCount,group, visits):
 
     visits = np.fromiter(visits,np.int_)
